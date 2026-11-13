@@ -61,10 +61,10 @@ class _PowerCheckHomeState extends State<PowerCheckHome> {
     try {
       final Map<dynamic, dynamic>? result = await platform.invokeMethod('getBatteryInfo');
       if (result != null) {
-        double voltageV = (result['voltage'] ?? 0.0) / 1000.0;
-        double currentA = (result['current'] ?? 0.0) / 1000000.0;
-        double tempC = (result['temperature'] ?? 0.0) / 10.0;
-        int isCharging = result['isCharging'] ?? 0;
+        double voltageV = ((result['voltage'] ?? 0) as num) / 1000.0;
+        double currentA = ((result['current'] ?? 0) as num) / 1000000.0;
+        double tempC = ((result['temperature'] ?? 0) as num) / 10.0;
+        int isCharging = (result['isCharging'] ?? 0) as int;
         double wattage = voltageV * currentA.abs();
 
         setState(() {
@@ -84,8 +84,8 @@ class _PowerCheckHomeState extends State<PowerCheckHome> {
       }
     } catch (e) {
       setState(() {
-        _connectionStatus = "خطأ في قراءة الحساسات";
-        _statusColor = Colors.grey;
+        _connectionStatus = "قيد التشغيل المباشر";
+        _statusColor = Colors.blueGrey;
       });
     }
   }

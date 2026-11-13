@@ -21,35 +21,58 @@ class MainActivity: FlutterActivity() {
             if (call.method == "getBatteryInfo") {
                 try {
                     val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-                    val batteryStatus: Intent? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        val receiver = object : BroadcastReceiver() {
-                            override fun onReceive(context: Context?, intent: Intent?) {}
+                    var voltage = 0
+                    var temperature = 0
+                    var status = -1
+                    var plugged = -1
+
+                    val receiver = object : BroadcastReceiver() {
+                        override fun onReceive(context: Context?, intent: Intent?) {
+                            if (intent != null) {
+                                voltage = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0)
+                                temperature = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0)
+                                status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
+                                plugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1)
+                            }
                         }
-                        val intent = registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
-                        unregisterReceiver(receiver)
-                        intent
-                    } else {
-                        registerReceiver(null, filter)
                     }
 
-                    val voltage = batteryStatus?.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0) ?: 0
-                    val temperature = batteryStatus?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0) ?: 0
-                    
+                    val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+                    } else {
+                        registerReceiver(receiver, filter)
+                    }
+
+                    if (intent != null) {
+                        voltage = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, voltage)
+                        temperature = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, temperature)
+                        status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, status)
+                        plugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, plugged)
+                    }
+
+                    try {
+                        unregisterReceiver(receiver)
+                    } catch (e: Exception) {}
+
                     val batteryManager = getSystemService(Context.BATTERY_SERVICE) as BatteryManager
-                    val current = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    val currentNow = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                         batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)
                     } else {
                         0
                     }
 
+                    // التحقق الدقيق مما إذا كان الشاحن موصولاً
+                    val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || plugged > 0
+
                     val data = mapOf(
                         "voltage" to voltage,
-                        "current" to current,
-                        "temperature" to temperature
+                        "current" to currentNow,
+                        "temperature" to temperature,
+                        "isCharging" to if (isCharging) 1 else 0
                     )
                     result.success(data)
                 } catch (e: Exception) {
-                    result.success(mapOf("voltage" to 3700, "current" to 0, "temperature" to 250))
+                    result.success(mapOf("voltage" to 3700, "current" to 0, "temperature" to 250, "isCharging" to 0))
                 }
             } else {
                 result.notImplemented()

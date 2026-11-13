@@ -1,5 +1,6 @@
 package com.powercheck.app
 
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -20,10 +21,22 @@ class MainActivity: FlutterActivity() {
             if (call.method == "getBatteryInfo") {
                 try {
                     val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-                    val intent = context.registerReceiver(null, filter)
+                    val receiver = object : BroadcastReceiver() {
+                        override fun onReceive(context: Context?, intent: Intent?) {}
+                    }
 
-                    val voltage = intent?.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0) ?: 0
-                    val temperature = intent?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0) ?: 0
+                    val intent: Intent? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        context.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
+                    } else {
+                        context.registerReceiver(receiver, filter)
+                    }
+
+                    try {
+                        context.unregisterReceiver(receiver)
+                    } catch (e: Exception) {}
+
+                    val voltage = intent?.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 3800) ?: 3800
+                    val temperature = intent?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 250) ?: 250
                     val status = intent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
                     val plugged = intent?.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1) ?: -1
 
@@ -44,7 +57,7 @@ class MainActivity: FlutterActivity() {
                     )
                     result.success(data)
                 } catch (e: Exception) {
-                    result.success(mapOf("voltage" to 3700, "current" to 0, "temperature" to 250, "isCharging" to 0))
+                    result.success(mapOf("voltage" to 3800, "current" to 0, "temperature" to 250, "isCharging" to 0))
                 }
             } else {
                 result.notImplemented()

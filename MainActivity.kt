@@ -1,6 +1,5 @@
 package com.powercheck.app
 
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -21,38 +20,12 @@ class MainActivity: FlutterActivity() {
             if (call.method == "getBatteryInfo") {
                 try {
                     val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-                    var voltage = 0
-                    var temperature = 0
-                    var status = -1
-                    var plugged = -1
+                    val intent = context.registerReceiver(null, filter)
 
-                    val receiver = object : BroadcastReceiver() {
-                        override fun onReceive(context: Context?, intent: Intent?) {
-                            if (intent != null) {
-                                voltage = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0)
-                                temperature = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0)
-                                status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
-                                plugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1)
-                            }
-                        }
-                    }
-
-                    val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
-                    } else {
-                        registerReceiver(receiver, filter)
-                    }
-
-                    if (intent != null) {
-                        voltage = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, voltage)
-                        temperature = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, temperature)
-                        status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, status)
-                        plugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, plugged)
-                    }
-
-                    try {
-                        unregisterReceiver(receiver)
-                    } catch (e: Exception) {}
+                    val voltage = intent?.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0) ?: 0
+                    val temperature = intent?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0) ?: 0
+                    val status = intent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
+                    val plugged = intent?.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1) ?: -1
 
                     val batteryManager = getSystemService(Context.BATTERY_SERVICE) as BatteryManager
                     val currentNow = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -61,7 +34,6 @@ class MainActivity: FlutterActivity() {
                         0
                     }
 
-                    // التحقق الدقيق مما إذا كان الشاحن موصولاً
                     val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || plugged > 0
 
                     val data = mapOf(

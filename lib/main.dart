@@ -30,10 +30,12 @@ class PowerCheckHome extends StatefulWidget {
 class _PowerCheckHomeState extends State<PowerCheckHome> {
   static const platform = MethodChannel('com.powercheck.app/battery');
 
-  String _voltage = "جاري القراءة...";
-  String _current = "جاري القراءة...";
-  String _temperature = "جاري القراءة...";
+  String _voltage = "0.0 فولت";
+  String _current = "0 ملي أمبير";
+  String _temperature = "0.0 °C";
   String _wattage = "0.0 واط";
+  String _connectionStatus = "جاري الفحص...";
+  Color _statusColor = Colors.orange;
 
   Timer? _timer;
 
@@ -62,6 +64,7 @@ class _PowerCheckHomeState extends State<PowerCheckHome> {
         double voltageV = (result['voltage'] ?? 0.0) / 1000.0;
         double currentA = (result['current'] ?? 0.0) / 1000000.0;
         double tempC = (result['temperature'] ?? 0.0) / 10.0;
+        int isCharging = result['isCharging'] ?? 0;
         double wattage = voltageV * currentA.abs();
 
         setState(() {
@@ -69,12 +72,20 @@ class _PowerCheckHomeState extends State<PowerCheckHome> {
           _current = "${(currentA * 1000).toStringAsFixed(0)} ملي أمبير";
           _temperature = "${tempC.toStringAsFixed(1)} °C";
           _wattage = "${wattage.toStringAsFixed(2)} واط";
+          
+          if (isCharging == 1) {
+            _connectionStatus = "⚡ الشاحن موصول ويوفر الطاقة";
+            _statusColor = Colors.green;
+          } else {
+            _connectionStatus = "🔌 الهاتف غير متصل بالشحن";
+            _statusColor = Colors.redAccent;
+          }
         });
       }
     } catch (e) {
       setState(() {
-        _voltage = "غير مدعوم";
-        _current = "0 ملي أمبير";
+        _connectionStatus = "خطأ في قراءة الحساسات";
+        _statusColor = Colors.grey;
       });
     }
   }
@@ -91,13 +102,14 @@ class _PowerCheckHomeState extends State<PowerCheckHome> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Card(
-              color: Colors.amber,
+            Card(
+              color: _statusColor,
               child: Padding(
-                padding: EdgeInsets.all(12.0),
+                padding: const EdgeInsets.all(14.0),
                 child: Text(
-                  'قم بتوصيل الشاحن أو الباور بانك لبدء قراءة القيم الحية.',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  _connectionStatus,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                  textAlign: TextAlign.center,
                 ),
               ),
             ),
